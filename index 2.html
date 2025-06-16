@@ -1,0 +1,156 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Meal Tracker</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; max-width: 1000px; margin: auto; }
+        h2 { margin-top: 30px; }
+        .food-item { cursor: pointer; margin: 5px 0; padding: 5px; border-radius: 4px; }
+        .food-item:hover { background-color: #f0f0f0; }
+        .selected { background-color: #c2f0c2; }
+        .container { display: flex; flex-wrap: wrap; gap: 20px; }
+        .section { flex: 1 1 300px; min-width: 260px; }
+        button { margin-top: 10px; padding: 6px 12px; font-size: 14px; }
+        input { margin-top: 5px; width: 95%; padding: 4px; }
+    </style>
+</head>
+<body>
+    <h1>Interactive Meal Tracker</h1>
+    <div class="container" id="sections"></div>
+
+    <h2>Totals</h2>
+    <p><strong>Calories:</strong> <span id="totalCalories">0</span></p>
+    <p><strong>Protein:</strong> <span id="totalProtein">0</span>g</p>
+
+    <button onclick="resetTotals()">🔁 Reset Day</button>
+
+    <script>
+        let totalCalories = parseInt(localStorage.getItem('totalCalories')) || 0;
+        let totalProtein = parseInt(localStorage.getItem('totalProtein')) || 0;
+
+        const sections = {
+            "Breakfast Options": [
+                { name: "7 oz Bottom Round", cal: 320, pro: 59 },
+                { name: "8 oz 93% Ground Beef", cal: 333, pro: 55 },
+                { name: "7 oz Sirloin", cal: 320, pro: 59 },
+                { name: "3 Eggs", cal: 180, pro: 18 },
+                { name: "1 tsp Fat", cal: 40, pro: 0 },
+                { name: "Smoothie", cal: 170, pro: 2 }
+            ],
+            "Dinner Proteins": [
+                { name: "8 oz Chicken Breast", cal: 340, pro: 68 },
+                { name: "8 oz Salmon", cal: 350, pro: 50 },
+                { name: "Shrimp", cal: 410, pro: 15 },
+                { name: "8 oz Bottom Round", cal: 360, pro: 66 },
+                { name: "8 oz Sirloin", cal: 360, pro: 65 },
+                { name: "8 oz Ahi Tuna", cal: 250, pro: 55 }
+            ],
+            "Fats": [
+                { name: "1/2 Avocado", cal: 125, pro: 0 },
+                { name: "1 oz Cheese", cal: 115, pro: 0 },
+                { name: "50g Blue Cheese Dressing", cal: 65, pro: 0 },
+                { name: "4 Olives", cal: 25, pro: 0 },
+                { name: "12g Butter", cal: 90, pro: 0 }
+            ],
+            "Carbs (~200 cal)": [
+                { name: "2 oz Rice Noodles", cal: 200, pro: 0 },
+                { name: "60g Rice", cal: 200, pro: 0 },
+                { name: "250g Raw Potato", cal: 200, pro: 0 }
+            ],
+            "Fruit Bowls": [
+                { name: "Apple w/ 150g Strawberries", cal: 100, pro: 1 },
+                { name: "20g Granola", cal: 72, pro: 1 },
+                { name: "Honey", cal: 30, pro: 0 }
+            ],
+            "Snacks": [
+                { name: "Apple + 1T Peanut Butter", cal: 150, pro: 4 },
+                { name: "25g Oats + 100g Blueberries", cal: 150, pro: 5 },
+                { name: "75g Kiwi + 100g Banana", cal: 150, pro: 2 },
+                { name: "Chocolove 1/3 Bar", cal: 150, pro: 2 },
+                { name: "Kind Protein Bar", cal: 220, pro: 12 },
+                { name: "50g Raisins", cal: 150, pro: 1 },
+                { name: "2T Peanut Butter", cal: 190, pro: 8 }
+            ]
+        };
+
+        function renderSections() {
+            const container = document.getElementById("sections");
+            container.innerHTML = "";
+
+            for (let section in sections) {
+                const div = document.createElement("div");
+                div.className = "section";
+                div.innerHTML = `<h2>${section}</h2>`;
+
+                
+                const savedItems = JSON.parse(localStorage.getItem("addedItems_" + section)) || [];
+                const allItems = sections[section].concat(savedItems);
+                allItems.forEach(item => {
+    
+                    const el = document.createElement("div");
+                    el.className = "food-item";
+                    el.textContent = `${item.name} (${item.cal} cal, ${item.pro}g P)`;
+                    el.onclick = () => toggleItem(el, item.cal, item.pro);
+                    div.appendChild(el);
+                });
+
+                const input = document.createElement("input");
+                input.placeholder = "Name, Calories, Protein (e.g. Yogurt, 120, 6)";
+                const btn = document.createElement("button");
+                btn.textContent = "➕ Add Item";
+                btn.onclick = () => {
+                    const parts = input.value.split(",");
+                    if (parts.length === 3) {
+                        const [name, cal, pro] = parts.map(p => p.trim());
+                        const item = { name, cal: parseInt(cal), pro: parseInt(pro) };
+                        
+                        let saved = JSON.parse(localStorage.getItem("addedItems_" + section)) || [];
+                        saved.push(item);
+                        localStorage.setItem("addedItems_" + section, JSON.stringify(saved));
+                        sections[section].push(item);
+                        renderSections();
+      // Re-render with new item
+                    }
+                };
+                div.appendChild(input);
+                div.appendChild(btn);
+                container.appendChild(div);
+            }
+
+            document.getElementById("totalCalories").textContent = totalCalories;
+            document.getElementById("totalProtein").textContent = totalProtein;
+        }
+
+        function toggleItem(el, cal, pro) {
+            if (el.classList.contains("selected")) {
+                totalCalories -= cal;
+                totalProtein -= pro;
+                el.classList.remove("selected");
+            } else {
+                totalCalories += cal;
+                totalProtein += pro;
+                el.classList.add("selected");
+            }
+            document.getElementById("totalCalories").textContent = totalCalories;
+            document.getElementById("totalProtein").textContent = totalProtein;
+            localStorage.setItem('totalCalories', totalCalories);
+            localStorage.setItem('totalProtein', totalProtein);
+        }
+
+        function resetTotals() {
+            totalCalories = 0;
+            totalProtein = 0;
+            localStorage.removeItem('totalCalories');
+            localStorage.removeItem('totalProtein');
+            document.getElementById("totalCalories").textContent = 0;
+            document.getElementById("totalProtein").textContent = 0;
+            document.querySelectorAll(".selected").forEach(el => el.classList.remove("selected"));
+        }
+
+        window.onload = renderSections;
+    </script>
+</body>
+</html>
